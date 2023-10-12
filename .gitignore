@@ -8,6 +8,8 @@ logs
 **/*.backup.*
 **/*.back.*
 
+.idea
+
 dist
 
 node_modules
