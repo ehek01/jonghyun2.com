@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
+import ChatUI from "./components/ChatUI";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -17,10 +18,9 @@ export default function App() {
     });
 
     stompClient.current.onConnect = (frame) => {
-      console.log('Connected: ' + frame);
-      stompClient.current.subscribe('/topic/messages', (messageOutput) => {
-        setMessages((prevMessages) => [...prevMessages, JSON.parse(messageOutput.body).content]);
-      });
+        stompClient.current.subscribe('/topic/messages', (messageOutput) => {
+            setMessages((prevMessages) => [...prevMessages, JSON.parse(messageOutput.body)]);
+        });
     };
 
     stompClient.current.activate();
@@ -30,33 +30,31 @@ export default function App() {
     };
   }, [serverUrl]);
 
-  const sendMessage = () => {
-    stompClient.current.publish({
-      destination: "/app/chat",
-      body: JSON.stringify({
-        content: inputMessage
-      })
-    });
-    setInputMessage('');
-  };
+    const sendMessage = async () => {
+        // IP 주소 수집
+        const response = await fetch("https://api64.ipify.org?format=json");
+        const data = await response.json();
+        const ipAddress = data.ip;
+
+        // 메시지 전송
+        stompClient.current.publish({
+            destination: "/app/chat",
+            body: JSON.stringify({
+                content: inputMessage,
+                timestamp: new Date().toLocaleTimeString(),
+                ipAddress: ipAddress  // IP 주소 추가
+            })
+        });
+
+        setInputMessage('');
+    };
 
   return (
-      <div>
-        <h1>MY REACT APP💗</h1>
-        <div style={{ marginBottom: '20px' }}>
-          <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Type a message..."
-          />
-          <button onClick={sendMessage}>Send</button>
-        </div>
-        <div>
-          {messages.map((message, index) => (
-              <p key={index}>{message}</p>
-          ))}
-        </div>
-      </div>
+      <ChatUI
+          inputMessage={inputMessage}
+          setInputMessage={setInputMessage}
+          sendMessage={sendMessage}
+          messages={messages}
+      />
   );
 }
