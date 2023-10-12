@@ -1,5 +1,9 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
+const Dotenv = require('dotenv-webpack');
+
+const isProduction = process.env.NODE_ENV === 'production';
+const envPath = isProduction ? '.env.production' : '.env.development';
 
 module.exports = {
   entry: './src/index.jsx', // webpack 최초 진입점(엔트리 포인트) 파일 경로를 설정합니다.
@@ -11,6 +15,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './index.html', // 번들링 파일을 주입하여 번들링 폴더로 복사할 대상 HTML 파일을 설정합니다.
     }),
+    new Dotenv({
+      path: envPath
+    })
   ],
   devServer: { // webpack-dev-server 옵션을 설정합니다.
     static: path.resolve(__dirname, 'dist'),
