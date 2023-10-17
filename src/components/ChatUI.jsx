@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import styled from 'styled-components';
 
 const MainContainer = styled.div`
@@ -145,7 +145,7 @@ const ChatUI = ({ inputMessage, setInputMessage, sendMessage, messages, clients 
                     {messages.map((message, index) => (
                         <Message key={index}>
                             <MessageWithTimestamp>
-                                <span>{message.content}</span>
+                                <span>{message.data}</span>
                                 <div>
                                     <span>{message.timestamp}</span>
                                     {message.ipAddress && <span>{maskIpAddress(message.ipAddress)}</span>}
@@ -158,7 +158,7 @@ const ChatUI = ({ inputMessage, setInputMessage, sendMessage, messages, clients 
             <ClientSection>
                 <h2>Online Clients</h2>
                 {clients.map((client, index) => (
-                    <p key={index}>{client.name}</p>
+                    <p key={index}>{client}</p>
                 ))}
             </ClientSection>
         </MainContainer>

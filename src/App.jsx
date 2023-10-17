@@ -10,7 +10,7 @@ export default function App() {
     const [clients, setClients] = useState([]);  // 추가된 상태
     const stompClient = useRef(null);
 
-    const serverUrl = process.env.SERVER_URL + '/websocket';
+    const serverUrl = process.env.SERVER_URL + '/ws';
 
     useEffect(() => {
         const fetchDataAndInitializeWebSocket = async () => {
@@ -30,23 +30,21 @@ export default function App() {
             });
 
             stompClient.current.onConnect = (frame) => {
-                console.log("연결완료")
-                // 기존 메시지 구독 코드
+                console.log("[LOG] Socket 연결완료")
+                // 메시지 구독 코드
                 stompClient.current.subscribe('/topic/messages', (messageOutput) => {
-                    console.log("서버로부터 메세지가 도착했습니다.")
+                    console.log("[LOG] /topic/messages 서버로부터 메세지가 도착했습니다. messageOutput: ", JSON.parse(messageOutput.body))
                     setMessages((prevMessages) => [...prevMessages, JSON.parse(messageOutput.body)]);
                 });
 
-                stompClient.current.subscribe('/topic/clients', (clientOutput) => {
-                    console.log(clientOutput)
+                // 새로운 사용자 접속시
+                stompClient.current.subscribe('/topic/join', (clientOutput) => {
                     try {
-                        // Parse the received JSON string to an object (here: array)
-                        const receivedClients = JSON.parse(clientOutput.body);
+                        const message = JSON.parse(clientOutput.body);
 
-                        // Update the state with the received data
-                        setClients(receivedClients);
+                        console.log('[LOG] /topic/join 새로운 클라이언트가 접속했습니다.', message.sessionId);
+                        setClients(prevClients => [...prevClients, message.sessionId]);
                     } catch (error) {
-                        // Log any error during the JSON parsing to the console
                         console.error('Error parsing client data:', error);
                     }
                 });
@@ -71,9 +69,10 @@ export default function App() {
 
         // 메시지 전송 (기존 코드)
         stompClient.current.publish({
-            destination: "/app/chat",
+            destination: "/pub/chat",
             body: JSON.stringify({
-                content: inputMessage,
+                data: inputMessage,
+                channelId: '/topic/messages',
                 timestamp: new Date().toLocaleTimeString(),
                 ipAddress: ipAddress
             })
