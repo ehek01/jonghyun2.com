@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import styled from 'styled-components';
 
 const MainContainer = styled.div`
@@ -15,7 +15,7 @@ const ChatSection = styled.div`
   padding: 20px;
   background-color: #f8f8f8;
   border-radius: 10px;
-  box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 `;
 
 const ClientSection = styled.div`
@@ -63,7 +63,7 @@ const SendButton = styled.button`
 `;
 
 const MessagesContainer = styled.div`
-  max-height: 300px;
+  max-height: 500px; // 변경된 값
   overflow-y: auto;
   text-align: left;
   padding: 10px;
@@ -72,13 +72,14 @@ const MessagesContainer = styled.div`
   background-color: #fff;
 
   @media (max-width: 600px) {
-    max-height: 200px;
+    max-height: 300px;  // 필요한 경우 여기도 조정
   }
 
   @media (min-width: 601px) and (max-width: 900px) {
-    max-height: 250px;
+    max-height: 400px;  // 필요한 경우 여기도 조정
   }
 `;
+
 
 const Message = styled.div`
   background-color: #4CAF50;
@@ -105,64 +106,101 @@ const MessageWithTimestamp = styled.div`
 `;
 
 
-
 // IP 주소 마스킹 함수
 const maskIpAddress = (ipAddress) => {
-    const ipParts = ipAddress.split('.');
-    if (ipParts.length === 4) {
-        ipParts[2] = 'x';
-        ipParts[3] = 'x';
-        return ipParts.join('.');
-    }
-    return ipAddress;
+  const ipParts = ipAddress.split('.');
+  if (ipParts.length === 4) {
+    ipParts[2] = 'x';
+    ipParts[3] = 'x';
+    return ipParts.join('.');
+  }
+  return ipAddress;
 };
 
 // Example usage
-const ChatUI = ({ inputMessage, setInputMessage, sendMessage, messages, clients }) => {
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
-    };
+const ChatUI = ({inputMessage, setInputMessage, sendMessage, messages, clients}) => {
+  const messagesEndRef = useRef(null);
 
-    return (
-        <MainContainer>
-            <ChatSection>
-                <ChatHeader>💗Jonghyun2.com에 오신것을 환영합니다.💗</ChatHeader>
-                <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <MessageInput
-                        type="text"
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Type a message..."
-                    />
-                    <SendButton onClick={sendMessage}>
-                        Send
-                    </SendButton>
+  useEffect(() => {
+    // 메시지가 추가될 때마다 스크롤을 최하단으로 이동
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // 간단한 문자열 해싱 함수
+  const stringToHash = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+  };
+
+  const getColorFromSessionId = (sessionId) => {
+    const hash = stringToHash(sessionId);
+    const red = (hash & 0xFF0000) >> 16;
+    const green = (hash & 0x00FF00) >> 8;
+    const blue = hash & 0x0000FF;
+    return `#${red.toString(16).padStart(2, '0')}${green.toString(16).padStart(2, '0')}${blue.toString(16).padStart(2, '0')}`;
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  };
+
+  useEffect(() => {
+    // 메시지가 추가될 때마다 스크롤을 최하단으로 이동
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  return (
+    <MainContainer>
+      <ChatSection>
+        <ChatHeader>💗Jonghyun2.com에 오신것을 환영합니다.💗</ChatHeader>
+        <div style={{marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <MessageInput
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type a message..."
+          />
+          <SendButton onClick={sendMessage}>
+            Send
+          </SendButton>
+        </div>
+        <MessagesContainer ref={messagesEndRef}>
+          {messages.map((message, index) => (
+            <Message
+              key={index}
+              style={{backgroundColor: getColorFromSessionId(message.sessionId)}}
+            >
+              <MessageWithTimestamp>
+                <span>{message.data}</span>
+                <div>
+                  <span>{message.timestamp}</span>
+                  {message.ipAddress && <span>{maskIpAddress(message.ipAddress)}</span>}
                 </div>
-                <MessagesContainer>
-                    {messages.map((message, index) => (
-                        <Message key={index}>
-                            <MessageWithTimestamp>
-                                <span>{message.data}</span>
-                                <div>
-                                    <span>{message.timestamp}</span>
-                                    {message.ipAddress && <span>{maskIpAddress(message.ipAddress)}</span>}
-                                </div>
-                            </MessageWithTimestamp>
-                        </Message>
-                    ))}
-                </MessagesContainer>
-            </ChatSection>
-            <ClientSection>
-                <h2>Online Clients</h2>
-                {clients.map((client, index) => (
-                    <p key={index}>{client}</p>
-                ))}
-            </ClientSection>
-        </MainContainer>
-    );
+              </MessageWithTimestamp>
+            </Message>
+          ))}
+        </MessagesContainer>
+      </ChatSection>
+      <ClientSection>
+        <h2>Online Clients</h2>
+        {clients.map((client, index) => (
+          <p key={index}>{client}</p>
+        ))}
+      </ClientSection>
+    </MainContainer>
+  );
 };
 
 export default ChatUI;
